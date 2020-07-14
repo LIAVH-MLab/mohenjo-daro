@@ -8,10 +8,9 @@ Created on Tue Jun  9 15:05:15 2020
 #%% IMPORT
 import numpy as np
 import pandas as pd
-import seaborn as sns
-import plotly.express as px
-import matplotlib.pyplot as plt
 import geopandas as gpd
+import plotly
+import requests
 
 #%% ------------- Definitions -------------
 
@@ -77,11 +76,6 @@ df['Text2'] = div_text( df , 'Text' )
 df.sample(5)
 
 #%%Images from GitHub
-
-import requests
-import lxml
-from lxml import html
-
 _ = ['1','2']
 images = pd.DataFrame()
 for i in _:
@@ -246,15 +240,8 @@ ff.update_layout(
 ff.show()
 
 
-
-# %%
-import plotly
-plotly.offline.plot( ff , filename='file.html')
-
 # %% ----   Artifacts & Floor Features -> Format, Geocode and Export
-
-#ds['N1'] = 'Floor Features'
-#da['N1'] = 'Artefacts'
+# Match formats
 
 gr1 = df[ df['N1'] == 'Artefacts' ].groupby( ['Block', 'House', 'Class', 'Time_Cat', 'Level_ft'] ).size().reset_index()
 gr1.columns = gr1.columns.tolist()[:-1] + ['item_count']
@@ -265,7 +252,7 @@ gr1['place'] = gr1['Block'] + '-' + gr1['House']
 
 gr1.sample(5)
 
-# %%
+# %% Import GeoLocations
 
 locs = gpd.read_file( r'C:\Users\csucuogl\Dropbox\MJD\DATA\GeoLocations.shp' )
 locs['lat'] = locs.geometry.x
@@ -273,20 +260,10 @@ locs['lon'] = locs.geometry.y
 
 locs.sample( 5 )
 
-# %%
+# %% Join Location info
 grf = gr1.join( locs.drop('id',axis=1).set_index('place_id') , on = 'place')
 grf.sample( 5 )
 
-# %%
-#grf.to_csv( r"C:\Users\csucuogl\Desktop\WORK\LIAVH\MappingArtefacts.csv" )
+# %% Export Data
+grf.to_csv( r"C:\Users\csucuogl\Desktop\WORK\LIAVH\MappingArtefacts.csv" )
 
-# %%
-
-import plotly.express as px
-
-fig = px.scatter_3d( grf, x='lat', y='lon', z='Level_ft',
-              color='Class', size = 'item_count')
-fig.show()
-
-
-# %%
