@@ -15,8 +15,8 @@ import geopandas as gpd
 
 #%% ------------- Definitions -------------
 
-da = pd.read_excel( r"G:\Shared drives\LIAVH\M-lab\Data\Artefacts\Artifacts_merged_.xlsx")
-ds = pd.read_excel( r"C:\Users\csucuogl\Desktop\WORK\LIAVH\Doorsils_and_Floor_Features_Level_Refs_Mackay.xlsx")
+da = pd.read_csv( "https://raw.githubusercontent.com/PrattSAVI/LIAVH/master/data/Artifacts.csv" , engine = 'python')
+ds = pd.read_csv( "https://raw.githubusercontent.com/PrattSAVI/LIAVH/master/data/Doorsils_and_Floor_Features_Level_Refs_Mackay.csv" , engine = 'python')
 
 da = da[['obj_plate_obj_ID','obj_block','obj_house','obj_room','obj_level_ft','obj_time_cat','obj_category','addl_type','addl_description']]
 ds = ds[['Feature','Block','House','Room','Level_ft','Period_cited_in_text','Level_context','Text','Materials_notes']]
@@ -73,9 +73,31 @@ def div_text( df , col ):  #Style Text by dividing at 6th word with <br>
             texts.append( None )
     return texts
 
-#df['Text2'] = div_text( df , 'Text' )
+df['Text2'] = div_text( df , 'Text' )
 df.sample(5)
 
+#%%Images from GitHub
+
+import requests
+import lxml
+from lxml import html
+
+_ = ['1','2']
+images = pd.DataFrame()
+for i in _:
+    resp = requests.get( 'https://api.github.com/repos/PrattSAVI/LIAVH/contents/images_1?ref=master' ).json()
+    temp = pd.DataFrame.from_dict( resp )
+
+    images = images.append( temp )
+images = images.drop(['sha','size','url','html_url','git_url','type','_links'], axis = 1)
+images['plate'] = [ (r.split('.')[0]).upper() for i,r in images['name'].iteritems() ]
+images.sample( 5 )
+#%% Match Images with Data
+
+df = df.join( images.drop(['path','name'],axis = 1).set_index('plate') , on = 'Plate' )
+df.sample(5)
+
+df['download_url'] = df['download_url'].fillna( '' )
 
 #%% PLOTLY
 
@@ -149,11 +171,12 @@ def box_figure( df ): # Prepare the Swarm Plot
     df = df[df['N1'] == 'Artefacts']
     data_group = []
     for item in sorted( df['Class'].unique() ):
-        data_group.append({
+        data_group.append(
+            {
                         'boxpoints': 'all',
                         'fillcolor': 'rgba(255,255,255,0)',
                         'hoveron': 'points',
-                        'text': '<b>' + df[df['Class'] == item]['Feature'] + '</b>' + '<br>' + df[df['Class'] == item]['Text2'] ,
+                        'text': '<b>' + df[df['Class'] == item]['Feature'] + '</b>' + '<br>' + df[df['Class'] == item]['Text2'] + '<br>Link: <a href=' + df[df['Class'] == item]['download_url'] + '>' + df[df['Class'] == item]['Plate'] + '</a>' ,
                         'hovertemplate': "%{text}" ,
                         'legendgroup': item ,
                         'line': {'color': 'rgba(255,255,255,0)'},
@@ -212,7 +235,13 @@ ff.update_layout( #Style Layout
         gridcolor = "rgb(255, 255, 255,0.5)",
         gridwidth = 0.1)
     )
-
+ff.update_layout(
+    hoverlabel=dict(
+        bgcolor="white", 
+        font_size=16, 
+        font_family="Corbel"
+    )
+)
 ff.show()
 
 
