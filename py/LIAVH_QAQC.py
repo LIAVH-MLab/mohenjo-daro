@@ -224,6 +224,7 @@ ff.update_layout( #Style Layout
     showlegend=True,
     dragmode = 'zoom',
     hovermode = 'closest',
+    hoverdistance = 60,
     plot_bgcolor = '#FDD2CD',
     paper_bgcolor = '#FDD2CD',
     title = 'Block 7 Artefact and Floor Features',
@@ -238,7 +239,7 @@ ff.update_layout( #Style Layout
 ff.update_layout(
     hoverlabel=dict(
         bgcolor="white", 
-        font_size=16, 
+        font_size=11, 
         font_family="Corbel"
     )
 )
