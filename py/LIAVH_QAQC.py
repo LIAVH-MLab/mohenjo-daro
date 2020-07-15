@@ -73,13 +73,15 @@ def div_text( df , col ):  #Style Text by dividing at 6th word with <br>
     return texts
 
 df['Text2'] = div_text( df , 'Text' )
+df['Text2'] = df['Text2'].replace('nan' , 'Not Available' )
+
 df.sample(5)
 
 #%%Images from GitHub
 _ = ['1','2']
 images = pd.DataFrame()
 for i in _:
-    resp = requests.get( 'https://api.github.com/repos/PrattSAVI/LIAVH/contents/images_1?ref=master' ).json()
+    resp = requests.get( 'https://api.github.com/repos/PrattSAVI/LIAVH/contents/images_' + i + '?ref=master' ).json()
     temp = pd.DataFrame.from_dict( resp )
 
     images = images.append( temp )
@@ -89,9 +91,9 @@ images.sample( 5 )
 #%% Match Images with Data
 
 df = df.join( images.drop(['path','name'],axis = 1).set_index('plate') , on = 'Plate' )
-df.sample(5)
-
 df['download_url'] = df['download_url'].fillna( '' )
+
+df.sample(5)
 
 #%% PLOTLY
 
@@ -147,6 +149,7 @@ for f in df[df['N1']=='Floor Features']['Feature'].unique(): # Draw Floor Featur
             x= dff['House'],
             y=dff['Level_ft'],
             legendgroup =  f,
+            hoverinfo='none',
             marker_symbol = 'line-ew',
             marker_line_color= colors[count], 
             marker_line_width=3, marker_size=15,
@@ -170,13 +173,13 @@ def box_figure( df ): # Prepare the Swarm Plot
                         'boxpoints': 'all',
                         'fillcolor': 'rgba(255,255,255,0)',
                         'hoveron': 'points',
-                        'text': '<b>' + df[df['Class'] == item]['Feature'] + '</b>' + '<br>' + df[df['Class'] == item]['Text2'] + '<br>Link: <a href=' + df[df['Class'] == item]['download_url'] + '>' + df[df['Class'] == item]['Plate'] + '</a>' ,
+                        'text': '<b>' + df[df['Class'] == item]['Feature'] + '</b>' + '<br>Desc: ' + df[df['Class'] == item]['Text2'] + '<br>Link: <a target="_blank" href=' + df[df['Class'] == item]['download_url'] + '>' + df[df['Class'] == item]['Plate'] + '</a>' ,
                         'hovertemplate': "%{text}" ,
                         'legendgroup': item ,
                         'line': {'color': 'rgba(255,255,255,0)'},
                         'marker': { 
                                     'color': colors[ count ] ,
-                                    'size': 6,
+                                    'size': 5,
                                     'opacity':0.8
                                     },
                         'name': item,
@@ -196,6 +199,7 @@ for d in box_figure(df)['data']: #Draw Point Plot
 
 #ADD NAME ANNOTATIONS
 gr = df.groupby(by='Time_Cat').mean().reset_index()
+
 ff.add_trace( # Add the Names
     go.Scatter(
         x = ['03']*len( gr ) ,
@@ -239,18 +243,15 @@ ff.update_layout(
 )
 ff.show()
 
+# Write figure to HTML, for offline use.  
+#ff.write_html(r'C:\Users\csucuogl\Downloads\ff.html')
 
 # %% ----   Artifacts & Floor Features -> Format, Geocode and Export
 # Match formats
+df['Block'] = df['Block'].str.zfill(2) 
+df['place'] = df['Block'] + '-' + df['House']
 
-gr1 = df[ df['N1'] == 'Artefacts' ].groupby( ['Block', 'House', 'Class', 'Time_Cat', 'Level_ft'] ).size().reset_index()
-gr1.columns = gr1.columns.tolist()[:-1] + ['item_count']
-
-gr1 = gr1.sort_values(['Block', 'House','Level_ft'])
-gr1['Block'] = gr1['Block'].str.zfill(2) 
-gr1['place'] = gr1['Block'] + '-' + gr1['House']
-
-gr1.sample(5)
+df.sample(5)
 
 # %% Import GeoLocations
 
@@ -261,9 +262,8 @@ locs['lon'] = locs.geometry.y
 locs.sample( 5 )
 
 # %% Join Location info
-grf = gr1.join( locs.drop('id',axis=1).set_index('place_id') , on = 'place')
+grf = df.join( locs.drop('id',axis=1).set_index('place_id') , on = 'place')
 grf.sample( 5 )
 
 # %% Export Data
-grf.to_csv( r"C:\Users\csucuogl\Desktop\WORK\LIAVH\MappingArtefacts.csv" )
-
+grf.to_csv( r"C:\Users\csucuogl\Desktop\WORK\LIAVH\MappingAllData.csv" )
