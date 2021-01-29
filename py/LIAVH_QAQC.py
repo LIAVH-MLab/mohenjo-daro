@@ -9,10 +9,13 @@ Created on Tue Jun  9 15:05:15 2020
 import numpy as np
 import pandas as pd
 import geopandas as gpd
-import plotly
 import requests
 
-#%% ------------- Definitions -------------
+import plotly.graph_objects as go
+import numpy as np
+import matplotlib.pyplot as plt
+
+#%% ------------- DATA -------------
 
 da = pd.read_csv( "https://raw.githubusercontent.com/PrattSAVI/LIAVH/master/data/Artifacts.csv" , engine = 'python')
 ds = pd.read_csv( "https://raw.githubusercontent.com/PrattSAVI/LIAVH/master/data/Doorsils_and_Floor_Features_Level_Refs_Mackay.csv" , engine = 'python')
@@ -29,8 +32,43 @@ ds['House'] = [r.split(', ')[0] for i,r in ds['House'].astype(str).iteritems()]
 ds['N1'] = 'Floor Features'
 da['N1'] = 'Artefacts'
 
-df = da.append( ds )
+display( ds.head(5) )
+display( da.head(5))
 
+#%% ------------------ WATER FEATURES ----------------
+
+dw = pd.read_csv( "https://raw.githubusercontent.com/PrattSAVI/LIAVH/master/data/Wells_and_Water_Features_Refs_Mackay.csv" , engine = 'python' )
+
+dw = dw.dropna( axis = 0 , how = 'all')
+dw = dw.drop( ['Size_notes','Page_num' ] , axis = 1 )
+
+dw = dw[['Feature','Block','House','Room','Level_ft','Period_cited_in_text','Text','Plate_num']].copy()
+dw.columns = ['Feature','Block','House','Room','Level_ft' , 'Time_Cat' , 'Text' ,'Plate']
+
+#If Block/ House is not defined, Remove from list
+dw = dw[~pd.isna(dw['Block']) ]
+dw = dw[~pd.isna(dw['House']) ]
+dw['Block'] = dw['Block'].astype(int).astype(str)
+dw['House'] = dw['House'].astype(int).astype(str)
+dw['House'] = dw['House'].str.zfill(2)
+
+#If time is NA, assign average value
+dw.loc[ (pd.isna(dw['Level_ft'])) & (dw['Time_Cat']=='Late  II and I') , 'Level_ft'] = -7
+dw.loc[ (pd.isna(dw['Level_ft'])) & (dw['Time_Cat']=='Late III') , 'Level_ft'] = -9.9
+dw.loc[ (pd.isna(dw['Level_ft'])) & (dw['Time_Cat']=='Intermediate I') , 'Level_ft'] = -13
+dw.loc[ (pd.isna(dw['Level_ft'])) & (dw['Time_Cat']=='Intermediate II') , 'Level_ft'] = -15.9
+dw.loc[ (pd.isna(dw['Level_ft'])) & (dw['Time_Cat']=='Intermediate III') , 'Level_ft'] = -20.4
+
+dw['N1'] = 'Water Features'
+
+dw.sample(5)
+#%% ------------------ MERGE ---------------
+df = da.append( ds )
+df = df.append( dw )
+
+df[ df['N1'] == 'Water Features' ].sample(5)
+
+#%% ------------------- CLEAN AND FORMAT
 df['Block'] = df['Block'].astype(str) 
 df = df[ df.Block == '7' ]
 
@@ -52,12 +90,19 @@ domestic = ['Animals', 'Cooking Baking Utensils', 'Personal Ornament',
             'Vessels','Games And Toys', 'Human Figure',
             'Pottery - Incised and Painted', 'Pottery - Plain and Banded']
 craft = [ 'Tools', 'Lithics' , 'Metal']
-
 trade = ['Weights And Measures', 'Beads', 'Seal' ]
+
+well = [ 'Well', 'Well Steening', 'Well Feature Detail', 'Well - Pit']
+drain = ['Pottery - Jar','Pipe', 'Drain','Outfall', 'Channel', 'Pit', 'Cesspit','Niche','Aperture', 'Chute']
+platform = ['Pavement']
 
 df.loc[df['Feature'].isin(domestic) , 'Class'] = 'Domestic'
 df.loc[df['Feature'].isin(craft) , 'Class'] = 'Craft'
 df.loc[df['Feature'].isin(trade) , 'Class'] = 'Trade'
+#Water Class
+df.loc[df['Feature'].isin(well) , 'Class'] = 'Well'
+df.loc[df['Feature'].isin(drain) , 'Class'] = 'Drainage'
+df.loc[df['Feature'].isin(platform) , 'Class'] = 'Water Platforms'
 
 def div_text( df , col ):  #Style Text by dividing at 6th word with <br>
     texts = []
@@ -88,6 +133,7 @@ for i in _:
 images = images.drop(['sha','size','url','html_url','git_url','type','_links'], axis = 1)
 images['plate'] = [ (r.split('.')[0]).upper() for i,r in images['name'].iteritems() ]
 images.sample( 5 )
+
 #%% Match Images with Data
 
 df = df.join( images.drop(['path','name'],axis = 1).set_index('plate') , on = 'Plate' )
@@ -97,17 +143,13 @@ df.sample(5)
 
 #%% PLOTLY
 
-import plotly.graph_objects as go
-import numpy as np
-import matplotlib as mpl
-
 time_order = [ 'Late Ia','Late Ib','Late II','Late III',
  'Intermediate I','Intermediate II','Intermediate III',
  'Early Periods']
 
 ff = go.Figure() #Start an empty Figure Object
 
-#STRATA LINES
+#-----DRAW ==> STRATA LINES
 for t in time_order: #Draw the Strata Lines
     at = df[ df['Time_Cat'] == t ]
     mins = at[['House','Level_ft']].groupby( by = 'House' ).min().reset_index()
@@ -115,7 +157,7 @@ for t in time_order: #Draw the Strata Lines
     al = mins.join( maxs.set_index('House') , on = 'House' , rsuffix = '_max')
      
     ff.add_trace(
-        go.Scatter(
+        go.Scatter( #lines
                 x=al['House'], 
                 y=al['Level_ft_max'],
                 fill=None,
@@ -125,19 +167,19 @@ for t in time_order: #Draw the Strata Lines
                 )
             )
     ff.add_trace(
-        go.Scatter(
+        go.Scatter( #White Fill
                 x=al['House'],
                 y=al['Level_ft'],
                 fill='tonexty',
                 mode='lines',
-                fillcolor='rgba(255,255,255,0.3)',
+                fillcolor='rgba(255,255,255,0.2)',
                 line=dict(width=0, color='white'),
                 showlegend = False,
                 )
             )
 
-#FLOOR FEATURE
-cmap = mpl.cm.get_cmap('Set2')
+#------DRAW ==> FLOOR FEATURE
+cmap = plt.cm.get_cmap('Set2')
 colors = [ 'rgb(' + str(int(cmap(i)[0]*255)) + ',' + str(int(cmap(i)[1]*255)) + ',' + str(int(cmap(i)[2]*255)) + ')' for i in np.linspace( 0 ,1 , len( df[df['N1']=='Floor Features']['Feature'].unique() ) ) ]
 count = 0
 for f in df[df['N1']=='Floor Features']['Feature'].unique(): # Draw Floor Features
@@ -152,8 +194,32 @@ for f in df[df['N1']=='Floor Features']['Feature'].unique(): # Draw Floor Featur
             hoverinfo='none',
             marker_symbol = 'line-ew',
             marker_line_color= colors[count], 
-            marker_line_width=3, marker_size=15,
+            marker_line_width=2, marker_size=20,
             name = f
+            )
+        )
+    count = count + 1
+
+#------DRAW ==> WATER FEATURE
+cmap = plt.cm.get_cmap('Set1')
+colors = [ 'rgb(' + str(int(cmap(i)[0]*255)) + ',' + str(int(cmap(i)[1]*255)) + ',' + str(int(cmap(i)[2]*255)) + ')' for i in np.linspace( 0 ,1 , len( df[df['N1']=='Water Features']['Feature'].unique() ) ) ]
+
+count = 0
+for f in df[df['N1']=='Water Features']['Feature'].unique(): # Draw Floor Features
+    dff = df[ (df['N1']=='Water Features') & (df['Feature'] == f) ]
+
+    ff.add_trace( # Draw Water Features
+        go.Scatter(
+            mode='markers',
+            x= dff['House'] ,
+            y=dff['Level_ft'],
+            legendgroup =  f,
+            text = '<b>' + dff['Feature'] + '</b><br>'+ dff['Text2'],
+            hovertemplate = "%{text}<extra></extra>",
+            marker_symbol = 'y-up',
+            marker_line_color= colors[count], 
+            marker_line_width=2, marker_size=7,
+            name = f,
             )
         )
     count = count + 1
@@ -161,7 +227,7 @@ for f in df[df['N1']=='Floor Features']['Feature'].unique(): # Draw Floor Featur
 #SWARM PLOT
 def box_figure( df ): # Prepare the Swarm Plot
 
-    cmap = mpl.cm.get_cmap('Set1')
+    cmap = plt.cm.get_cmap('Set1')
     colors = [ 'rgb(' + str(int(cmap(i)[0]*255)) + ',' + str(int(cmap(i)[1]*255)) + ',' + str(int(cmap(i)[2]*255)) + ')' for i in np.linspace( 0 ,1 , len( df['Class'].unique() ) ) ]
     count = 0
     
@@ -173,7 +239,7 @@ def box_figure( df ): # Prepare the Swarm Plot
                         'boxpoints': 'all',
                         'fillcolor': 'rgba(255,255,255,0)',
                         'hoveron': 'points',
-                        'text': '<b>' + df[df['Class'] == item]['Feature'] + '</b>' + '<br>Desc: ' + df[df['Class'] == item]['Text2'] + '<br>Link: <a target="_blank" href=' + df[df['Class'] == item]['download_url'] + '>' + df[df['Class'] == item]['Plate'] + '</a>' ,
+                        'text': '<b>' + df[df['Class'] == item]['Feature'] + '</b>' + '<br>Desc: ' + df[df['Class'] == item]['Text2'] + '<br>Link: <a target="_blank" href=' + '>' + df[df['Class'] == item]['Plate'] + '</a>' ,
                         'hovertemplate': "%{text}" ,
                         'legendgroup': item ,
                         'line': {'color': 'rgba(255,255,255,0)'},
@@ -215,17 +281,21 @@ ff.add_trace( # Add the Names
         )
     ))
 
-
 #LAYOUT
 ff.update_layout( #Style Layout
     width = 900 , height = 700 ,
+    hoverlabel=dict(
+        bgcolor="white", 
+        font_size=11, 
+        font_family="Corbel"
+    ),
     showlegend=True,
     dragmode = 'zoom',
     hovermode = 'closest',
     hoverdistance = 60,
     plot_bgcolor = '#FDD2CD',
     paper_bgcolor = '#FDD2CD',
-    title = 'Block 7 Artefact and Floor Features',
+    title = 'Block 7 Artefact and Floor / Water Features',
     margin=dict(l=50,r=50,b=50,t=100, pad=25 ),
     xaxis = dict(
         gridcolor = "rgb(255, 255, 255,0.5)",
@@ -234,36 +304,17 @@ ff.update_layout( #Style Layout
         gridcolor = "rgb(255, 255, 255,0.5)",
         gridwidth = 0.1)
     )
-ff.update_layout(
-    hoverlabel=dict(
-        bgcolor="white", 
-        font_size=11, 
-        font_family="Corbel"
-    )
-)
+
 ff.show()
 
+#%%
 # Write figure to HTML, for offline use.  
-#ff.write_html(r'C:\Users\csucuogl\Downloads\ff.html')
+ff.write_html(r'C:\Users\csucuogl\Downloads\210129_LIAVH_Features.html')
 
-# %% ----   Artifacts & Floor Features -> Format, Geocode and Export
-# Match formats
-df['Block'] = df['Block'].str.zfill(2) 
-df['place'] = df['Block'] + '-' + df['House']
+# %%
 
-df.sample(5)
+import seaborn as sns
+pt = pd.pivot_table(data=df[ df['N1'] == 'Artefacts' ][['Block','House','Time_Cat']], columns=['Block','House'] , index = 'Time_Cat' , aggfunc=len )
+sns.heatmap(pt , cmap = 'OrRd' )
 
-# %% Import GeoLocations
-
-locs = gpd.read_file( r'C:\Users\csucuogl\Dropbox\MJD\DATA\GeoLocations.shp' )
-locs['lat'] = locs.geometry.x
-locs['lon'] = locs.geometry.y
-
-locs.sample( 5 )
-
-# %% Join Location info
-grf = df.join( locs.drop('id',axis=1).set_index('place_id') , on = 'place')
-grf.sample( 5 )
-
-# %% Export Data
-grf.to_csv( r"C:\Users\csucuogl\Desktop\WORK\LIAVH\MappingAllData.csv" )
+# %%
