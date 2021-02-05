@@ -2,18 +2,17 @@
 """
 Created on Tue Jun  9 15:05:15 2020
 
-@author: csucuogl
+@author: csucuogl for LIAVH
+This code generates the pink artefact/ water/ floor features scatter plot.
 """
 
-#%% IMPORT
+#%% ----------- IMPORT ------------------------
 import numpy as np
 import pandas as pd
 import geopandas as gpd
 import requests
-
-import plotly.graph_objects as go
-import numpy as np
 import matplotlib.pyplot as plt
+import plotly.graph_objects as go
 
 #%% ------------- DATA -------------
 
@@ -70,13 +69,15 @@ df[ df['N1'] == 'Water Features' ].sample(5)
 
 #%% ------------------- CLEAN AND FORMAT
 df['Block'] = df['Block'].astype(str) 
-df = df[ df.Block == '7' ]
 
 df['House'] = df['House'].replace(np.nan,None)
+df['House'] = df['House'].replace('nan',None)
 df['House'] = df['House'].dropna(axis = 0)
 df['House'] = df['House'].astype(int).astype(str).str.zfill(2)
 
-df = df[ df['House'].isin( ['07', '04', '03', '05', '06'] ) ]
+#Filter Data to Selected Houses and Rooms
+#df = df[ df.Block == '7' ]
+#df = df[ df['House'].isin( ['07', '04', '03', '05', '06'] ) ]
 
 df = df[ df.Level_ft != '?' ]
 df = df[ df.Level_ft != '[?]' ]
@@ -87,18 +88,20 @@ df.loc[ df['Level_ft'] == 'Surface' , 'Level_ft' ] = 0
 df['Level_ft'] = df['Level_ft'].astype(float)
 
 domestic = ['Animals', 'Cooking Baking Utensils', 'Personal Ornament', 
-            'Vessels','Games And Toys', 'Human Figure',
-            'Pottery - Incised and Painted', 'Pottery - Plain and Banded']
+            'Vessels','Games And Toys', 'Human Figure', 'Household Objects'
+            'Pottery - Incised and Painted', 'Pottery - Plain and Banded','Pottery - Incised and Painted - Upper']
 craft = [ 'Tools', 'Lithics' , 'Metal']
 trade = ['Weights And Measures', 'Beads', 'Seal' ]
 
 well = [ 'Well', 'Well Steening', 'Well Feature Detail', 'Well - Pit']
-drain = ['Pottery - Jar','Pipe', 'Drain','Outfall', 'Channel', 'Pit', 'Cesspit','Niche','Aperture', 'Chute']
+drain = ['Pottery - Jar','Pipe', 'Drain','Outfall', 'Channel', 'Pit', 'Cesspit','Niche','Aperture', 'Chute', 'Drain Below Stair']
 platform = ['Pavement']
 
 df.loc[df['Feature'].isin(domestic) , 'Class'] = 'Domestic'
 df.loc[df['Feature'].isin(craft) , 'Class'] = 'Craft'
 df.loc[df['Feature'].isin(trade) , 'Class'] = 'Trade'
+df.loc[(df['N1']=='Artefacts')&(pd.isna(df['Class'])) , 'Class'] = 'Other'
+
 #Water Class
 df.loc[df['Feature'].isin(well) , 'Class'] = 'Well'
 df.loc[df['Feature'].isin(drain) , 'Class'] = 'Drainage'
@@ -122,7 +125,7 @@ df['Text2'] = df['Text2'].replace('nan' , 'Not Available' )
 
 df.sample(5)
 
-#%%Images from GitHub
+#%% ---------------------- Images from GitHub ------------------------ Skip this cell.
 _ = ['1','2']
 images = pd.DataFrame()
 for i in _:
@@ -133,8 +136,6 @@ for i in _:
 images = images.drop(['sha','size','url','html_url','git_url','type','_links'], axis = 1)
 images['plate'] = [ (r.split('.')[0]).upper() for i,r in images['name'].iteritems() ]
 images.sample( 5 )
-
-#%% Match Images with Data
 
 df = df.join( images.drop(['path','name'],axis = 1).set_index('plate') , on = 'Plate' )
 df['download_url'] = df['download_url'].fillna( '' )
@@ -148,7 +149,7 @@ time_order = [ 'Late Ia','Late Ib','Late II','Late III',
  'Early Periods']
 
 ff = go.Figure() #Start an empty Figure Object
-
+'''
 #-----DRAW ==> STRATA LINES
 for t in time_order: #Draw the Strata Lines
     at = df[ df['Time_Cat'] == t ]
@@ -177,24 +178,26 @@ for t in time_order: #Draw the Strata Lines
                 showlegend = False,
                 )
             )
+'''
+
 
 #------DRAW ==> FLOOR FEATURE
 cmap = plt.cm.get_cmap('Set2')
 colors = [ 'rgb(' + str(int(cmap(i)[0]*255)) + ',' + str(int(cmap(i)[1]*255)) + ',' + str(int(cmap(i)[2]*255)) + ')' for i in np.linspace( 0 ,1 , len( df[df['N1']=='Floor Features']['Feature'].unique() ) ) ]
 count = 0
-for f in df[df['N1']=='Floor Features']['Feature'].unique(): # Draw Floor Features
-    dff = df[ (df['N1']=='Floor Features') & (df['Feature'] == f) ]
+for f in df[df['N1']=='Floor Features']['Class'].unique(): # Draw Floor Features
+    dff = df[ (df['N1']=='Floor Features') & (df['Class'] == f) ]
 
     ff.add_trace( # Draw Floor Features
         go.Scatter(
             mode='markers',
-            x= dff['House'],
-            y=dff['Level_ft'],
+            x= [ dff['Block'] , dff['House'] ],
+            y = dff['Level_ft'],
             legendgroup =  f,
-            hoverinfo='none',
+            hoverinfo = 'none',
             marker_symbol = 'line-ew',
-            marker_line_color= colors[count], 
-            marker_line_width=2, marker_size=20,
+            marker_line_color = colors[count], 
+            marker_line_width = 2, marker_size = 20,
             name = f
             )
         )
@@ -205,13 +208,13 @@ cmap = plt.cm.get_cmap('Set1')
 colors = [ 'rgb(' + str(int(cmap(i)[0]*255)) + ',' + str(int(cmap(i)[1]*255)) + ',' + str(int(cmap(i)[2]*255)) + ')' for i in np.linspace( 0 ,1 , len( df[df['N1']=='Water Features']['Feature'].unique() ) ) ]
 
 count = 0
-for f in df[df['N1']=='Water Features']['Feature'].unique(): # Draw Floor Features
-    dff = df[ (df['N1']=='Water Features') & (df['Feature'] == f) ]
+for f in df[df['N1']=='Water Features']['Class'].unique(): # Draw Floor Features
+    dff = df[ (df['N1']=='Water Features') & (df['Class'] == f) ]
 
     ff.add_trace( # Draw Water Features
         go.Scatter(
             mode='markers',
-            x= dff['House'] ,
+            x= [ dff['Block'] , dff['House'] ] ,
             y=dff['Level_ft'],
             legendgroup =  f,
             text = '<b>' + dff['Feature'] + '</b><br>'+ dff['Text2'],
@@ -251,9 +254,9 @@ def box_figure( df ): # Prepare the Swarm Plot
                         'name': item,
                         'pointpos':0,
                         'type': 'box',
-                        'x': df[df['Class'] == item]['House'].tolist(),
+                        'x': [ df[df['Class'] == item]['Block'].tolist() , df[df['Class'] == item]['House'].tolist()],
                         'y': df[df['Class'] == item]['Level_ft'].tolist(),
-                        'jitter':1
+                        'jitter':0.5
                         })
         count = count+1
 
@@ -309,7 +312,7 @@ ff.show()
 
 #%%
 # Write figure to HTML, for offline use.  
-ff.write_html(r'C:\Users\csucuogl\Downloads\210129_LIAVH_Features.html')
+ff.write_html(r'C:\Users\csucuogl\Downloads\210129_LIAVH_Features_All.html')
 
 # %%
 
@@ -317,4 +320,8 @@ import seaborn as sns
 pt = pd.pivot_table(data=df[ df['N1'] == 'Artefacts' ][['Block','House','Time_Cat']], columns=['Block','House'] , index = 'Time_Cat' , aggfunc=len )
 sns.heatmap(pt , cmap = 'OrRd' )
 
+# %%
+
+
+df['Class'].unique()
 # %%
