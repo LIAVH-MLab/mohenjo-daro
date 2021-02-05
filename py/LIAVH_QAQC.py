@@ -76,7 +76,7 @@ df['House'] = df['House'].dropna(axis = 0)
 df['House'] = df['House'].astype(int).astype(str).str.zfill(2)
 
 #Filter Data to Selected Houses and Rooms
-#df = df[ df.Block == '7' ]
+df = df[ df['Block'].isin([ '4','7','9','10' ]) ]
 #df = df[ df['House'].isin( ['07', '04', '03', '05', '06'] ) ]
 
 df = df[ df.Level_ft != '?' ]
@@ -97,15 +97,19 @@ well = [ 'Well', 'Well Steening', 'Well Feature Detail', 'Well - Pit']
 drain = ['Pottery - Jar','Pipe', 'Drain','Outfall', 'Channel', 'Pit', 'Cesspit','Niche','Aperture', 'Chute', 'Drain Below Stair']
 platform = ['Pavement']
 
+#Floor Features
 df.loc[df['Feature'].isin(domestic) , 'Class'] = 'Domestic'
 df.loc[df['Feature'].isin(craft) , 'Class'] = 'Craft'
 df.loc[df['Feature'].isin(trade) , 'Class'] = 'Trade'
-df.loc[(df['N1']=='Artefacts')&(pd.isna(df['Class'])) , 'Class'] = 'Other'
 
 #Water Class
 df.loc[df['Feature'].isin(well) , 'Class'] = 'Well'
 df.loc[df['Feature'].isin(drain) , 'Class'] = 'Drainage'
 df.loc[df['Feature'].isin(platform) , 'Class'] = 'Water Platforms'
+
+#Catch All Else
+df.loc[ (df['N1']=='Artefacts') & (pd.isna(df['Class'])) , 'Class'] = 'Other'
+
 
 def div_text( df , col ):  #Style Text by dividing at 6th word with <br>
     texts = []
@@ -122,23 +126,6 @@ def div_text( df , col ):  #Style Text by dividing at 6th word with <br>
 
 df['Text2'] = div_text( df , 'Text' )
 df['Text2'] = df['Text2'].replace('nan' , 'Not Available' )
-
-df.sample(5)
-
-#%% ---------------------- Images from GitHub ------------------------ Skip this cell.
-_ = ['1','2']
-images = pd.DataFrame()
-for i in _:
-    resp = requests.get( 'https://api.github.com/repos/PrattSAVI/LIAVH/contents/images_' + i + '?ref=master' ).json()
-    temp = pd.DataFrame.from_dict( resp )
-
-    images = images.append( temp )
-images = images.drop(['sha','size','url','html_url','git_url','type','_links'], axis = 1)
-images['plate'] = [ (r.split('.')[0]).upper() for i,r in images['name'].iteritems() ]
-images.sample( 5 )
-
-df = df.join( images.drop(['path','name'],axis = 1).set_index('plate') , on = 'Plate' )
-df['download_url'] = df['download_url'].fillna( '' )
 
 df.sample(5)
 
@@ -185,8 +172,8 @@ for t in time_order: #Draw the Strata Lines
 cmap = plt.cm.get_cmap('Set2')
 colors = [ 'rgb(' + str(int(cmap(i)[0]*255)) + ',' + str(int(cmap(i)[1]*255)) + ',' + str(int(cmap(i)[2]*255)) + ')' for i in np.linspace( 0 ,1 , len( df[df['N1']=='Floor Features']['Feature'].unique() ) ) ]
 count = 0
-for f in df[df['N1']=='Floor Features']['Class'].unique(): # Draw Floor Features
-    dff = df[ (df['N1']=='Floor Features') & (df['Class'] == f) ]
+for f in df[df['N1']=='Floor Features']['Feature'].unique(): # Draw Floor Features
+    dff = df[ (df['N1']=='Floor Features') & (df['Feature'] == f) ]
 
     ff.add_trace( # Draw Floor Features
         go.Scatter(
@@ -202,14 +189,14 @@ for f in df[df['N1']=='Floor Features']['Class'].unique(): # Draw Floor Features
             )
         )
     count = count + 1
-
+'''
 #------DRAW ==> WATER FEATURE
 cmap = plt.cm.get_cmap('Set1')
 colors = [ 'rgb(' + str(int(cmap(i)[0]*255)) + ',' + str(int(cmap(i)[1]*255)) + ',' + str(int(cmap(i)[2]*255)) + ')' for i in np.linspace( 0 ,1 , len( df[df['N1']=='Water Features']['Feature'].unique() ) ) ]
 
 count = 0
 for f in df[df['N1']=='Water Features']['Class'].unique(): # Draw Floor Features
-    dff = df[ (df['N1']=='Water Features') & (df['Class'] == f) ]
+    dff = df[ (df['N1']=='Water Features') & (df['Class'] == f ) ]
 
     ff.add_trace( # Draw Water Features
         go.Scatter(
@@ -226,12 +213,12 @@ for f in df[df['N1']=='Water Features']['Class'].unique(): # Draw Floor Features
             )
         )
     count = count + 1
-
+'''
 #SWARM PLOT
 def box_figure( df ): # Prepare the Swarm Plot
 
     cmap = plt.cm.get_cmap('Set1')
-    colors = [ 'rgb(' + str(int(cmap(i)[0]*255)) + ',' + str(int(cmap(i)[1]*255)) + ',' + str(int(cmap(i)[2]*255)) + ')' for i in np.linspace( 0 ,1 , len( df['Class'].unique() ) ) ]
+    colors = [ 'rgb(' + str(int(cmap(i)[0]*255)) + ',' + str(int(cmap(i)[1]*255)) + ',' + str(int(cmap(i)[2]*255)) + ')' for i in np.linspace( 0 ,1 , len( df['Feature'].unique() ) ) ]
     count = 0
     
     df = df[df['N1'] == 'Artefacts']
@@ -286,7 +273,7 @@ ff.add_trace( # Add the Names
 
 #LAYOUT
 ff.update_layout( #Style Layout
-    width = 900 , height = 700 ,
+    width = 900 , height = 500 ,
     hoverlabel=dict(
         bgcolor="white", 
         font_size=11, 
@@ -298,8 +285,8 @@ ff.update_layout( #Style Layout
     hoverdistance = 60,
     plot_bgcolor = '#FDD2CD',
     paper_bgcolor = '#FDD2CD',
-    title = 'Block 7 Artefact and Floor / Water Features',
-    margin=dict(l=50,r=50,b=50,t=100, pad=25 ),
+    title = 'Block 4,7,9,10,1 Artefact and Floor / Water Features',
+    margin=dict(l=50,r=50,b=80,t=100, pad=25 ),
     xaxis = dict(
         gridcolor = "rgb(255, 255, 255,0.5)",
         showgrid = True),
@@ -312,7 +299,7 @@ ff.show()
 
 #%%
 # Write figure to HTML, for offline use.  
-ff.write_html(r'C:\Users\csucuogl\Downloads\210129_LIAVH_Features_All.html')
+ff.write_html(r'C:\Users\csucuogl\Documents\GitHub\LIAVH\210205_LIAVH_All.html')
 
 # %%
 
@@ -323,5 +310,9 @@ sns.heatmap(pt , cmap = 'OrRd' )
 # %%
 
 
-df['Class'].unique()
+sorted( df['Feature'].unique() )
 # %%
+df[df['N1']=='Floor Features']['Class'].unique()
+# %%
+
+
