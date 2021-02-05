@@ -97,6 +97,8 @@ well = [ 'Well', 'Well Steening', 'Well Feature Detail', 'Well - Pit']
 drain = ['Pottery - Jar','Pipe', 'Drain','Outfall', 'Channel', 'Pit', 'Cesspit','Niche','Aperture', 'Chute', 'Drain Below Stair']
 platform = ['Pavement']
 
+df['Class'] = None
+
 #Floor Features
 df.loc[df['Feature'].isin(domestic) , 'Class'] = 'Domestic'
 df.loc[df['Feature'].isin(craft) , 'Class'] = 'Craft'
@@ -184,12 +186,12 @@ for f in df[df['N1']=='Floor Features']['Feature'].unique(): # Draw Floor Featur
             hoverinfo = 'none',
             marker_symbol = 'line-ew',
             marker_line_color = colors[count], 
-            marker_line_width = 2, marker_size = 20,
+            marker_line_width = 1.5, marker_size = 15,
             name = f
             )
         )
     count = count + 1
-'''
+
 #------DRAW ==> WATER FEATURE
 cmap = plt.cm.get_cmap('Set1')
 colors = [ 'rgb(' + str(int(cmap(i)[0]*255)) + ',' + str(int(cmap(i)[1]*255)) + ',' + str(int(cmap(i)[2]*255)) + ')' for i in np.linspace( 0 ,1 , len( df[df['N1']=='Water Features']['Feature'].unique() ) ) ]
@@ -213,12 +215,12 @@ for f in df[df['N1']=='Water Features']['Class'].unique(): # Draw Floor Features
             )
         )
     count = count + 1
-'''
+
 #SWARM PLOT
 def box_figure( df ): # Prepare the Swarm Plot
 
     cmap = plt.cm.get_cmap('Set1')
-    colors = [ 'rgb(' + str(int(cmap(i)[0]*255)) + ',' + str(int(cmap(i)[1]*255)) + ',' + str(int(cmap(i)[2]*255)) + ')' for i in np.linspace( 0 ,1 , len( df['Feature'].unique() ) ) ]
+    colors = [ 'rgb(' + str(int(cmap(i)[0]*255)) + ',' + str(int(cmap(i)[1]*255)) + ',' + str(int(cmap(i)[2]*255)) + ')' for i in np.linspace( 0 ,1 , len( df['Class'].unique() ) ) ]
     count = 0
     
     df = df[df['N1'] == 'Artefacts']
@@ -315,4 +317,7 @@ sorted( df['Feature'].unique() )
 df[df['N1']=='Floor Features']['Class'].unique()
 # %%
 
+df['Class']
 
+
+# %%
