@@ -138,17 +138,18 @@ time_order = [ 'Late Ia','Late Ib','Late II','Late III',
  'Early Periods']
 
 ff = go.Figure() #Start an empty Figure Object
+
 '''
 #-----DRAW ==> STRATA LINES
 for t in time_order: #Draw the Strata Lines
     at = df[ df['Time_Cat'] == t ]
-    mins = at[['House','Level_ft']].groupby( by = 'House' ).min().reset_index()
-    maxs = at[['House','Level_ft']].groupby( by = 'House' ).max().reset_index()
-    al = mins.join( maxs.set_index('House') , on = 'House' , rsuffix = '_max')
+    mins = at[['Block','House','Level_ft']].groupby( by = ['Block','House'] ).min().reset_index()
+    maxs = at[['Block','House','Level_ft']].groupby( by = ['Block','House'] ).max().reset_index()
+    al = mins.join( maxs.set_index('Block','House') , on = ['Block','House'] , rsuffix = '_max')
      
     ff.add_trace(
         go.Scatter( #lines
-                x=al['House'], 
+                x=[al['Block'],al['House']], 
                 y=al['Level_ft_max'],
                 fill=None,
                 mode='lines',
@@ -158,7 +159,7 @@ for t in time_order: #Draw the Strata Lines
             )
     ff.add_trace(
         go.Scatter( #White Fill
-                x=al['House'],
+                x=[ al['Block'],al['House'] ],
                 y=al['Level_ft'],
                 fill='tonexty',
                 mode='lines',
@@ -168,7 +169,6 @@ for t in time_order: #Draw the Strata Lines
                 )
             )
 '''
-
 
 #------DRAW ==> FLOOR FEATURE
 cmap = plt.cm.get_cmap('Set2')
@@ -183,7 +183,8 @@ for f in df[df['N1']=='Floor Features']['Feature'].unique(): # Draw Floor Featur
             x= [ dff['Block'] , dff['House'] ],
             y = dff['Level_ft'],
             legendgroup =  f,
-            hoverinfo = 'none',
+            text = '<b>' + dff['Feature'] + '</b><br>'+ dff['Text2'],
+            hovertemplate = "%{text}<extra></extra>",
             marker_symbol = 'line-ew',
             marker_line_color = colors[count], 
             marker_line_width = 1.5, marker_size = 15,
@@ -210,7 +211,7 @@ for f in df[df['N1']=='Water Features']['Class'].unique(): # Draw Floor Features
             hovertemplate = "%{text}<extra></extra>",
             marker_symbol = 'y-up',
             marker_line_color= colors[count], 
-            marker_line_width=2, marker_size=7,
+            marker_line_width=1.5, marker_size=5,
             name = f,
             )
         )
@@ -275,7 +276,7 @@ ff.add_trace( # Add the Names
 
 #LAYOUT
 ff.update_layout( #Style Layout
-    width = 900 , height = 500 ,
+    width = 900 , height = 800 ,
     hoverlabel=dict(
         bgcolor="white", 
         font_size=11, 
