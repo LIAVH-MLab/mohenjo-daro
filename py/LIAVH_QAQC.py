@@ -312,13 +312,5 @@ sns.heatmap(pt , cmap = 'OrRd' )
 
 # %%
 
-
-sorted( df['Feature'].unique() )
-# %%
-df[df['N1']=='Floor Features']['Class'].unique()
-# %%
-
-df['Class']
-
-
+df.to_csv( r"C:\Users\csucuogl\Documents\GitHub\LIAVH\data\Processed_Data.csv")
 # %%
