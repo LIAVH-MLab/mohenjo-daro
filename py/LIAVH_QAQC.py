@@ -311,29 +311,29 @@ pt = pd.pivot_table(data=df[ df['N1'] == 'Artefacts' ][['Block','House','Time_Ca
 sns.heatmap(pt , cmap = 'OrRd' )
 
 # %%
-t2 = "https://github.com/PrattSAVI/LIAVH/tree/master/images_2/"
-t1 = "https://github.com/PrattSAVI/LIAVH/blob/master/images_1/"
+t2 = "https://raw.githubusercontent.com/PrattSAVI/LIAVH/master/images_2/"
+t1 = "https://raw.githubusercontent.com/PrattSAVI/LIAVH/master/images_1/"
 
 import os
 
 photos1 = r'C:\Users\csucuogl\Documents\GitHub\LIAVH\images_1'
 photos2 = r'C:\Users\csucuogl\Documents\GitHub\LIAVH\images_2'
-ph1 = os.listdir(photos1)
-ph2 = os.listdir(photos2)
+ph1 = [i.split(".png")[0].upper() for i in os.listdir(photos1)]
+ph2 = [i.split(".png")[0].upper() for i in os.listdir(photos2)]
 
-ph1
-#%%
+df['photo'] = None
 for i,r in df.iterrows():
     if not pd.isna(r['Plate']):
-        if r['Plate'].str.upper() in ph1:
-            temp = t1 + r['Plate'] + ".png"
-            print (temp)
-            break
+        if r['Plate'].upper() in ph1:
+            temp = t1 + r['Plate'].lower() + ".png"
+            print(temp)
+            df.loc[ df['Plate'] == r['Plate'] , 'photo'] = temp
 
+        if r['Plate'].upper() in ph2:
+            temp = t2 + r['Plate'].lower() + ".png"
+            df.loc[ df['Plate'] == r['Plate'] , 'photo'] = temp
 
-
-
-
+df.sample(15)
 
 #%%
 
