@@ -334,8 +334,6 @@ for i,r in df.iterrows():
             df.loc[ df['Plate'] == r['Plate'] , 'photo'] = temp
 
 df.sample(15)
-
 #%%
-
 df.to_csv( r"C:\Users\csucuogl\Documents\GitHub\LIAVH\data\Processed_Data.csv")
 # %%

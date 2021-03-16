@@ -7,6 +7,16 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.15.0/lodash.min.js"></script>
     <link rel="preconnect" href="https://fonts.gstatic.com">
     <link href="https://fonts.googleapis.com/css2?family=Ubuntu&family=Work+Sans:wght@300&display=swap" rel="stylesheet">
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <!-- Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-BmbxuPwQa2lc/FVzBcNJ7UAyJxM6wuqIj61tLrc4wSX0szH/Ev+nYRRuWlolflfl" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta2/dist/js/bootstrap.bundle.min.js" integrity="sha384-b5kHyXgcpbZJO/tY9Ul7kGkf1S0CWuKcCD38l8YkeH8z8QjE0GmW1gYU5S9FOnJ0" crossorigin="anonymous"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+
+
     <style>
         body {
             font-family: 'Work Sans', sans-serif;
@@ -30,25 +40,68 @@
         }
         
         #tooltip img {
-            width: 90px;
+            width: 120px;
             height: auto;
+        }
+
+        .container{
+            width:1200px;
+        }
+
+        .col{
+            padding:0px;
         }
         
         ​
     </style>
+
 </head>
 
 <body>
-    <svg id="container"></svg>
+
+    <div class="container">
+        <div class="row">
+            <div class="col" id="chart">
+                <svg id="container"></svg>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="btn-group" role="group" aria-label="Basic example" style=""> </div>
+            <div id = "time-selector" class="btn-group btn-group-sm" role="group" aria-label="Basic example" style="text-decoration-line: none;">
+                <button type="button" class="btn btn-secondary">All</button>
+                <button type="button" class="btn btn-secondary">Late Ia</button>
+                <button type="button" class="btn btn-secondary">Late Ib</button>
+                <button type="button" class="btn btn-secondary">Late II</button>
+                <button type="button" class="btn btn-secondary">Late III</button>
+                <button type="button" class="btn btn-secondary">Intermediate I</button>
+                <button type="button" class="btn btn-secondary">Intermediate II</button>
+                <button type="button" class="btn btn-secondary">Intermediate III</button>
+                <button type="button" class="btn btn-secondary">Early Periods</button>
+            </div>
+        </div>
+
+        <div class="row" id="map"></div>
+
+    </div>
+    </div>
+
+
+
+
 </body>
 
 <script>
+    w = $("#chart").width();
+
     d3.csv("https://raw.githubusercontent.com/PrattSAVI/LIAVH/master/data/Processed_Data.csv", function(error, data) {
 
         //Filter Artefacts
         let arts = _.filter(data, {
             'N1': "Artefacts",
         });
+
+        console.log(arts);
 
         // Create Block_House Variable
         arts = arts.map(d => ({
@@ -59,7 +112,7 @@
             Plate: d.Plate,
             Room: d.Room,
             Text: d.Text,
-            Time_Cat: d.Time_Cat,
+            time: d.Time_Cat,
             Type: d.Type,
             photo: d.photo,
             loc: d.Block + '-' + d.House
@@ -70,16 +123,14 @@
             return d.loc;
         }]);
 
-        console.log(arts);
-
         // Config
-        let width = 800;
-        let height = 500;
+        let width = w;
+        let height = 600;
 
         let margin = {
             top: 50,
             bottom: 50,
-            left: 25,
+            left: 75,
             right: 10
         }
 
@@ -94,7 +145,7 @@
             .padding(0.25)
             // --y
         let yScale = d3.scaleLinear()
-            .domain([min, max])
+            .domain([min-5, max+5])
             .range([(height - margin.top - margin.bottom), 0]);
         // --color
         let sectors = Array.from(new Set(arts.map((d) => d.Class))); //Get Unique
@@ -107,7 +158,9 @@
             .style("transform", `translate(${margin.left}px,${margin.top}px)`);
 
         let locs = Array.from(new Set(arts.map((d) => d.loc))); //Get Unique
-        let grid = body.selectAll("line")
+
+        // X Grid (Vertial)
+        let grid = body.append("g").attr("class","xgrid").selectAll("line")
             .data(locs).enter()
             .append("line")
             .attr("class", "horizontalGrid")
@@ -119,9 +172,27 @@
             .attr("stroke", "black")
             .attr("stroke-width", ".01em")
 
+        // Y Grid (Horizontal)
+        let ylocs = new Array(-40,-35,-30,-25,-20,-15,-10,-5);
+
+        let ygrid = body.append("g").attr("class","ygrid").selectAll("line")
+            .data(ylocs).enter()
+            .append("line")
+            .attr("class", "verticalGrid")
+            .attr("x1", 0)
+            .attr("x2", width - margin.left - margin.right)
+            .attr("y1", d => yScale(d))
+            .attr("y2", d => yScale(d))
+            .attr("fill", "none")
+            .attr("stroke", "black")
+            .style("stroke-dasharray", ("3, 3"))
+            .style("opacity",0.7)
+            .attr("stroke-width", ".01em")
+
+        
         // Scatter Plot
         let rad = 2.5
-        let join = body.selectAll("circle")
+        let join = body.append("g").attr("class","dots").selectAll("circle")
             .data(arts).enter()
             .append("circle")
             .attr("class", "circ")
@@ -152,7 +223,7 @@
         let init_decay = setTimeout(function() {
             console.log("start alpha decay");
             simulation.alphaDecay(0.1);
-        }, 3000); // start decay after 3 seconds
+        }, 3000); 
 
         // Axis
         //----x Ordinal Scale
@@ -171,13 +242,37 @@
             .attr("dx", "-.8em")
             .attr("dy", "-5px");
 
-        // TOOLTIP
+        //----x Lineer Scale
+        let yAxis = d3.axisLeft(yScale);
+        container.append("g")
+            .attr("class", "y axis")
+            .attr("id", "y")
+            .style("transform", `translate(${margin.left}px,${margin.top}px)`)
+            .style("font-size", "11px")
+            .call(yAxis)
+            .selectAll("text")
+            .attr("dx", "-.8em")
+            .attr("dy", "-5px");
+
+        // TOOLTIP and Interaction
         d3.select('body')
             .append('div')
             .attr('id', 'tooltip')
-            .attr('style', 'opacity: 0;');
+            .style('opactiy', 0);
 
-        join.on('mouseover', function(d) {
+        //-- Mouse Over, enter, move, out
+        join.on("mouseenter", function(d) {
+                
+                d3.selectAll("circle").attr("r",rad).attr("stroke","none");
+
+                d3.select(this)
+                    .attr("stroke","white")
+                    .transition().duration(500)
+                    .attr("r", 6)             
+                    .attr("stroke","black")
+                    .attr("opacity",1);
+            })
+            .on('mouseover', function(d) {
                 d3.select('#tooltip')
                     .transition().duration(200)
                     .style('opacity', 1)
@@ -185,11 +280,15 @@
             .on('mouseout', function(d) {
                 d3.select('#tooltip')
                     .transition().duration(200)
-                    .style('opacity', 0)
+                    .style('opacity', 0);
+
+                d3.select(this)
+                    .attr("stroke","white")
+                    .attr("r", rad)             
+                    .attr("stroke","none");
             })
             .on('mousemove', function(d) {
-
-                let px = d3.mouse(this)[0] + margin.left + 10
+                let px = d3.mouse(this)[0] + margin.left - 120
                 let py = d3.mouse(this)[1] + margin.top - 10
 
                 d3.select('#tooltip')
@@ -198,6 +297,34 @@
                     .style("background-color", "rgb(255,255,255,0.8)")
                     .html(`<p><b>Location:</b></br> ${d.Block}-${d.House}-${d.Room}</p><p><b>Class:</b>${d.Class}</p><p><b>Type:</b> ${d.Type}</p><p><b>Description</b></br>${d.Text}</p><img src=${d.photo}></img>`)
             })
+
+        // TIME SELCTION
+        value = $(document).ready(function() {
+            $('.btn').click(function() {
+            
+            timeval = $(this).text();
+            console.log(timeval);
+
+            body.selectAll("circle")
+                .transition().duration(250)
+                .attr("fill", function(d) {
+
+                    if (d.time === timeval){
+                        return color(d.Class)
+                    }
+                    else {
+                        return "#dfe3ee";
+                    }
+                });
+
+            if (timeval === "All"){
+                body.selectAll("circle")
+                    .transition().duration(250)
+                    .attr("fill", (d) => color(d.Class));
+            };
+
+            });
+        });
 
     })
 </script>
