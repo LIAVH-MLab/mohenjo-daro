@@ -101,8 +101,6 @@
             'N1': "Artefacts",
         });
 
-        console.log(arts);
-
         // Create Block_House Variable
         arts = arts.map(d => ({
             Class: d.Class,
@@ -114,9 +112,14 @@
             Text: d.Text,
             time: d.Time_Cat,
             Type: d.Type,
+            Feature:d.Feature,
             photo: d.photo,
-            loc: d.Block + '-' + d.House
+            loc: d.Block + '-' + d.House,
+            x:+d.x,
+            y:+d.y
         }));
+        
+        console.log(arts);
 
         // Sort by Block - House (Loc)
         arts = _.sortBy(arts, [function(d) {
@@ -145,7 +148,7 @@
             .padding(0.25)
             // --y
         let yScale = d3.scaleLinear()
-            .domain([min-5, max+5])
+            .domain([min-3, max+3])
             .range([(height - margin.top - margin.bottom), 0]);
         // --color
         let sectors = Array.from(new Set(arts.map((d) => d.Class))); //Get Unique
