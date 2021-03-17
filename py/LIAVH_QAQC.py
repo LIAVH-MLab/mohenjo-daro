@@ -326,7 +326,6 @@ for i,r in df.iterrows():
     if not pd.isna(r['Plate']):
         if r['Plate'].upper() in ph1:
             temp = t1 + r['Plate'].lower() + ".png"
-            print(temp)
             df.loc[ df['Plate'] == r['Plate'] , 'photo'] = temp
 
         if r['Plate'].upper() in ph2:
@@ -335,5 +334,36 @@ for i,r in df.iterrows():
 
 df.sample(15)
 #%%
-df.to_csv( r"C:\Users\csucuogl\Documents\GitHub\LIAVH\data\Processed_Data.csv")
+# %%Add Location to Points
+
+import geopandas as gpd
+geo_path = r"C:\Users\csucuogl\Dropbox\MJD\GIS_DATA\SHP\Artifacts_SelectedBlocks.shp"
+gdf = gpd.read_file(geo_path)
+
+gdf = gdf[['block','house','geometry']]
+gdf = gdf[ ~pd.isna(gdf['geometry']) ]
+gdf = gdf.to_crs(epsg=4326)
+
+gdf1 = gdf.drop_duplicates(keep="first")
+gdf1 = gdf1.sort_values(by=['block','house'])
+gdf1 = gdf1.dropna(axis=0,subset=['geometry']) 
+gdf1['x'] = gdf1.geometry.x
+gdf1['y'] = gdf1.geometry.y
+
+gdf1['block'] = gdf1['block'].astype(str) 
+gdf1['house'] = gdf1['house'].astype(str).str.zfill(2)
+
+gdf1 = gdf1.drop("geometry",axis=1)
+gdf1
+#%%
+
+dft = df.join( gdf1.set_index(["block","house"]) , on=['Block','House'] ) 
+dft = dft.drop(["Text2","Level_context","Period_cited_in_text","Materials_notes"],axis=1)
+dft.head(5)
+# %%
+dft.to_csv( r"C:\Users\csucuogl\Documents\GitHub\LIAVH\data\Processed_Data.csv")
+
+# %%
+
+gdf.plot()
 # %%
