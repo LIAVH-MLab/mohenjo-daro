@@ -69,6 +69,10 @@
             height:400px;
         }
 
+        canvas{
+            opacity:0.5;
+        }
+
         svg {
             position: relative;
             width: 100%;
@@ -82,13 +86,16 @@
 <body>
 
     <div class="container">
-        <div class="row">
+        <div class="row mt-2 mb-2">
+            <h3>DKG South Artefact Distribution</h3>
+        </div>
+        <div class="row mt-0">
             <div class="col" id="chart">
                 <svg id="container"></svg>
             </div>
         </div>
 
-        <div class="row">
+        <div class="row mt-2">
             <div class="btn-group" role="group" aria-label="Basic example" style=""> </div>
             <div id = "time-selector" class="btn-group btn-group-sm" role="group" aria-label="Basic example" style="text-decoration-line: none;">
                 <button type="button" class="btn btn-secondary">All</button>
@@ -103,7 +110,7 @@
             </div>
         </div>
 
-        <div class="row">
+        <div class="row mt-2">
             <div id="map"></div>
         </div>
 
@@ -121,7 +128,7 @@
         });
 
         // Create Block_House Variable
-        arts = arts.map(d => ({
+        arts = arts.map((d,i) => ({
             Class: d.Class,
             Block: d.Block,
             House: d.House,
@@ -135,10 +142,11 @@
             photo: d.photo,
             loc: d.Block + '-' + d.House,
             x:+d.x,
-            y:+d.y
+            y:+d.y,
+            ind:i
         }));
         
-        console.log(arts);
+        //console.log(arts);
 
         // Sort by Block - House (Loc)
         arts = _.sortBy(arts, [function(d) {
@@ -150,7 +158,7 @@
         let height = 500;
 
         let margin = {
-            top: 50,
+            top: 5,
             bottom: 50,
             left: 50,
             right: 10
@@ -218,6 +226,7 @@
             .data(arts).enter()
             .append("circle")
             .attr("class", "circ")
+            .attr("id",d => d.ind)
             .attr("cx", d => xScale(d.loc))
             .attr("cy", d => yScale(d.level))
             .attr("r", rad)
@@ -238,14 +247,14 @@
 
         function tick() {
             d3.selectAll(".circ")
-                .attr("cx", (d) => d.x)
-                .attr("cy", (d) => d.y);
+                .attr("cx", d => d.x)
+                .attr("cy", d => d.y);
         }
 
         let init_decay = setTimeout(function() {
             console.log("start alpha decay");
             simulation.alphaDecay(0.1);
-        }, 3000); 
+        }, 4000); 
 
         // Axis
         //----x Ordinal Scale
@@ -284,15 +293,36 @@
 
         //-- Mouse Over, enter, move, out
         join.on("mouseenter", function(d) {
-                
-                d3.selectAll("circle").attr("r",rad).attr("stroke","none");
+                // When mouse enters to any circle, first makes sure all other are back to normal
+               join.attr("r",rad).attr("stroke","none");
 
+                // Hovered circle has black stroke
                 d3.select(this)
                     .attr("stroke","white")
                     .transition().duration(500)
                     .attr("r", 6)             
                     .attr("stroke","black")
                     .attr("opacity",1);
+
+                // if the id of the hovered cirle is the same the map dot, make it bigger
+                search = +this.id;
+                locators.attr("stroke", d => {
+                        if(d.ind === search){
+                            r = "black";
+                        } else{
+                            r = 'none';
+                        }
+                        return r;
+                    })
+                    .attr("r", d => {
+                        if(d.ind === search){
+                            r = rad*3;
+                        } else{
+                            r = rad;
+                        }
+                        return r;
+                    });
+
             })
             .on('mouseover', function(d) {
                 d3.select('#tooltip')
@@ -304,14 +334,16 @@
                     .transition().duration(200)
                     .style('opacity', 0);
 
+                locators.attr("r",rad).attr("stroke","none");
+
                 d3.select(this)
                     .attr("stroke","white")
                     .attr("r", rad)             
                     .attr("stroke","none");
             })
             .on('mousemove', function(d) {
-                let px = d3.mouse(this)[0] + margin.left;
-                let py = d3.mouse(this)[1] + margin.top;
+                let px = d3.mouse(this)[0] + (($(window).width()-1200)/2) + 80;
+                let py = d3.mouse(this)[1];
 
                 d3.select('#tooltip')
                     .style('left', px + 'px')
@@ -351,76 +383,61 @@
         arts1 = arts.map(d => ({
             Class: d.Class,
             time: d.time,
-            ide:d.Block + '-' + d.House + '-' + d.Class + '-' + d.time ,
             x:+d.x,
-            y:+d.y
+            y:+d.y,
+            ind:d.ind
         }));
 
-        grouped = _(arts1)
-            .groupBy('ide')
-            .map((array, key) => ({
-                "ide":key,
-                "Class":array[0].Class,
-                "x": array[0].x,
-                "y": array[0].y,
-                "time":array[0].time,
-                "Count": array.length
-            })).value();
-
-        console.log(grouped);
+        arts1 = _.sortBy(arts1, [function(d) {
+            return d.Class;
+        }]);
 
         mapboxgl.accessToken = 'pk.eyJ1Ijoiam9yZGl0b3N0IiwiYSI6ImQtcVkyclEifQ.vwKrOGZoZSj3N-9MB6FF_A';
         var map = new mapboxgl.Map({
             container: 'map',
             style: 'mapbox://styles/mapbox/satellite-v9',
-            zoom: 17.5,
-            center: [68.13710405917807,27.326745412583172],
+            zoom: 18.75,
+            center: [68.1371040,27.32674541],
         });
 
         // Get Mapbox map canvas container
         var canvas = map.getCanvasContainer();
+        // add svg on the map
         var map_svg = d3.select(canvas).append("svg")
             .attr("id","map-box")
             .attr("width",w)
             .attr("height",450);
 
+        // Project to whatever the map is
         function project(d) {
             return map.project(new mapboxgl.LngLat(+d[0], +d[1]));
         }
 
-        let radmin = d3.min(grouped.map(d => d.Count));
-        let radmax = d3.max(grouped.map(d => d.Count));
-
-        let radScale = d3.scaleLinear()
-            .domain([radmin,radmax])
-            .range([3,7]);
-
         let locators = map_svg.selectAll("circle")
-            .data(grouped).enter()
+            .data( arts1 ).enter()
             .append("circle")
-            .attr("r", d => radScale(d.Count))
+            .attr("class","map-dots")
+            .attr("id", d => d.ind)
+            .attr("r", rad)
             .attr("fill", d => color(d.Class))
             .style("opacity",1)
 
         function update() {
 
-            locators.attr("cx", function(d){
-                    cords = new Array( d.x,d.y );
-                    p = project(cords)
-                    x = Math.sin(360/d.Count)*9
-                    return p.x + x
+            carpan = 6;
+            gnum = 8;
+            locators.attr("cx", function(d,i){
+                    p = project( new Array( d.x,d.y ) );
+                    return p.x + ((i % gnum)*carpan) - (carpan/2)
                 })
-                .attr("cy", function(d){
-                    cords = new Array( d.x,d.y );
-                    p = project(cords)
-                    y = Math.cos( 360/d.Count )*9
-                    return p.y + y
+                .attr("cy", function(d,i){
+                    p = project(new Array( d.x,d.y ))
+                    return p.y + ((Math.floor(i/gnum)%12)*carpan) - (carpan/2)
                 });
-            }
+        };
 
         $('.btn').click(function() {
             timeval2 = $(this).text();
-            console.log(timeval2);
 
             if (timeval2 === "All"){
                 locators.attr("fill", d => color(d.Class))
@@ -437,8 +454,6 @@
 
             }
         })
-
-
 
         map.on("viewreset", update)
         map.on("move", update)
