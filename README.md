@@ -1,7 +1,9 @@
 ### LIAVH - Mohenjo Daro
 Data and Analytics Storage for MLab.  
 
-This repo contains, datasets created by digitizing Excavation notes and plans. 
+This repo contains, datasets created by digitizing Excavation notes and plans.  
+Please note that this reopsitory contains our work in progress. Data and code being stored here get updated.
+
 
 Datasets:
 * Artefacts
