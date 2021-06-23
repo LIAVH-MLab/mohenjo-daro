@@ -10,8 +10,7 @@ Datasets:
 * Floor Features
 * Images of found artefacts
 * A combined and simplified data set for dashboard.
-
-![Final](https://raw.githubusercontent.com/PrattSAVI/LIAVH/master/img/Database.JPG){:height="350px"}
+<img src="https://raw.githubusercontent.com/PrattSAVI/LIAVH/master/img/Database.JPG" height="300">
 
 Code:
 * Data Cleaning and Visualization  
