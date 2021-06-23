@@ -16,4 +16,4 @@ Datasets:
 Code:
 * Data Cleaning and Visualization  
 
-<img src="https://raw.githubusercontent.com/PrattSAVI/LIAVH/master/img/Scatter.JPG" height="300">
+<img src="https://raw.githubusercontent.com/PrattSAVI/LIAVH/master/img/Scatter.JPG" height="450">
