@@ -396,7 +396,7 @@
         var map = new mapboxgl.Map({
             container: 'map',
             style: 'mapbox://styles/mapbox/satellite-v9',
-            zoom: 18.75,
+            zoom: 19.5,
             center: [68.1371040,27.32674541],
         });
 
@@ -406,7 +406,7 @@
         var map_svg = d3.select(canvas).append("svg")
             .attr("id","map-box")
             .attr("width",w)
-            .attr("height",450);
+            .attr("height",650);
 
         // Project to whatever the map is
         function project(d) {

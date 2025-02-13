@@ -16,8 +16,12 @@ import plotly.graph_objects as go
 
 #%% ------------- DATA -------------
 
-da = pd.read_csv( "https://raw.githubusercontent.com/PrattSAVI/LIAVH/master/data/Artifacts.csv" , engine = 'python')
-ds = pd.read_csv( "https://raw.githubusercontent.com/PrattSAVI/LIAVH/master/data/Doorsils_and_Floor_Features_Level_Refs_Mackay.csv" , engine = 'python')
+# da = pd.read_csv( "https://raw.githubusercontent.com/PrattSAVI/LIAVH/master/data/Artifacts.csv" , engine = 'python')
+# ds = pd.read_csv( "https://raw.githubusercontent.com/PrattSAVI/LIAVH/master/data/Doorsils_and_Floor_Features_Level_Refs_Mackay.csv" , engine = 'python')
+
+da = pd.read_csv( "/Users/saraeichner/Desktop/github/mohenjo-daro/data/Doorsils_and_Floor_Features_Level_Refs_Mackay.csv" , engine = 'python')
+ds = pd.read_csv( "/Users/saraeichner/Desktop/github/mohenjo-daro/data/Artifacts.csv" , engine = 'python')
+
 
 da = da[['obj_plate_obj_ID','obj_block','obj_house','obj_room','obj_level_ft','obj_time_cat','obj_category','addl_type','addl_description']]
 ds = ds[['Feature','Block','House','Room','Level_ft','Period_cited_in_text','Level_context','Text','Materials_notes']]
@@ -39,7 +43,7 @@ display( da.head(5))
 dw = pd.read_csv( "https://raw.githubusercontent.com/PrattSAVI/LIAVH/master/data/Wells_and_Water_Features_Refs_Mackay.csv" , engine = 'python' )
 
 dw = dw.dropna( axis = 0 , how = 'all')
-dw = dw.drop( ['Size_notes','Page_num' ] , axis = 1 )
+dw = dw.drop( ['Size_notes','Page_num' ], axis = 1 )
 
 dw = dw[['Feature','Block','House','Room','Level_ft','Period_cited_in_text','Text','Plate_num']].copy()
 dw.columns = ['Feature','Block','House','Room','Level_ft' , 'Time_Cat' , 'Text' ,'Plate']

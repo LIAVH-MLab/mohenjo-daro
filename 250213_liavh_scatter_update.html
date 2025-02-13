@@ -1,0 +1,557 @@
+<html>
+
+<meta charset="UTF-8">
+
+<head>
+    <script src="https://d3js.org/d3.v4.min.js"></script>    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.15.0/lodash.min.js"></script>
+    <link rel="preconnect" href="https://fonts.gstatic.com">
+    <!-- <link href="https://fonts.googleapis.com/css2?family=Ubuntu&family=Work+Sans:wght@300&display=swap" rel="stylesheet">-->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:ital,wght@0,200..900;1,200..900&display=swap" rel="stylesheet">
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <!-- Bootstrap -->
+    <!-- <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-BmbxuPwQa2lc/FVzBcNJ7UAyJxM6wuqIj61tLrc4wSX0szH/Ev+nYRRuWlolflfl" crossorigin="anonymous"> -->
+     <!-- <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta2/dist/js/bootstrap.bundle.min.js" integrity="sha384-b5kHyXgcpbZJO/tY9Ul7kGkf1S0CWuKcCD38l8YkeH8z8QjE0GmW1gYU5S9FOnJ0" crossorigin="anonymous"></script> -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <link href="https://api.mapbox.com/mapbox-gl-js/v3.9.4/mapbox-gl.css" rel="stylesheet">
+    <script src="https://api.mapbox.com/mapbox-gl-js/v3.9.4/mapbox-gl.js"></script>
+
+    <style>
+
+        .source-sans-3-<uniquifier> {
+            font-family: "Source Sans 3", serif;
+            font-optical-sizing: auto;
+            font-weight: <weight>;
+            font-style: normal;
+        }
+        html, body {
+            height: 100%;
+            width: 100%;
+            margin: 0;
+            padding: .5rem;
+            font-family: 'Source Sans 3', sans-serif;  
+            background-color: #f4ecde; 
+        }
+
+        h3 {
+            font-family: 'Source Sans 3', sans-serif;
+            font-weight: 600;
+            font-size: 1.25rem;
+            margin: 0;
+            padding-bottom: .5rem;
+        }
+        p2 {
+            font-family: 'Source Sans 3', sans-serif;
+            font-weight: 400;
+            line-height: 1.3rem;
+            font-size: .85rem;
+            margin: 0;
+        }
+        b {
+            font-family: 'Source Sans 3', sans-serif;
+            font-weight: 700;
+        }
+
+        svg {
+            font-family: 'Source Sans 3', sans-serif;
+            font-weight: 300;
+        }
+        /* map and chart are not responsive, need to change that so they both resize when window changes size /*/
+        .container{
+            width:100%;
+            height: 700px;
+            display:flex;
+            flex-direction: row;
+            margin: .5rem;
+            padding: 0rem;
+            box-sizing: border-box;
+            gap: 1rem;
+            justify-content: space-between;
+        }
+
+        .col{
+            padding:0px;
+            width: 49.4%;
+        }
+
+        #map{
+            margin: .5rem;
+            position:relative; 
+            top:0; 
+            bottom:0; 
+            right: 20px;
+            width:100%;
+            height:100%;
+        }
+
+        .btn-group {
+            display: flex;
+            flex-direction: column;
+            gap:1rem;
+            justify-content: center;
+            justify-items: center;
+            font-size: 0.75rem;
+        }
+
+        canvas{
+            opacity:1;
+        }
+
+        svg {
+            position: relative;
+            width: 100%;
+            height: 100%;
+          }
+
+        /* Chart Related Below */
+        .xaxis line{
+            visibility:hidden;
+        }
+          
+        #tooltip {
+            text-align: left;
+            position: absolute;
+            padding: 8px;
+            padding-left: 12px;
+            font-size: 11px;
+            background: rgb(255, 255, 255);
+            border: 8px;
+            border-radius: 8px;
+            pointer-events: none;
+            max-width: 150px;
+        }
+        
+        #tooltip img {
+            width: 145px;
+            height: auto;
+        }
+
+    </style>
+
+</head>
+
+<body>
+<!-- TItle and ribbon -->
+    <div class="row">
+        <h3>DKG South Artefact Distribution</h3>
+
+        <div class="btn-group" role="group" aria-label="Basic example" > </div>
+            <button type="button" class="btn btn-secondary">All</button>
+            <button type="button" class="btn btn-secondary">Late Ia</button>
+            <button type="button" class="btn btn-secondary">Late Ib</button>
+            <button type="button" class="btn btn-secondary">Late II</button>
+            <button type="button" class="btn btn-secondary">Late III</button>
+            <button type="button" class="btn btn-secondary">Intermediate I</button>
+            <button type="button" class="btn btn-secondary">Intermediate II</button>
+            <button type="button" class="btn btn-secondary">Intermediate III</button>
+            <button type="button" class="btn btn-secondary">Early Periods</button>
+        </div>
+
+    </div>
+
+    <div class="container">
+
+        <!-- chart -->
+        <div class="col" id="chart">
+            <svg id="container"></svg>
+        </div>
+        
+        <!-- map -->
+        <div class="col">
+            <div id="map"></div>
+        </div>
+
+    </div>
+</body>
+
+<script>
+    w = $("#chart").width();
+    console.log( w );
+
+    // change this to the new Repo, processed data
+    //https://github.com/LIAVH-MLab/mohenjo-daro/master/data/Processed_Data.csv
+    
+    d3.csv("https://raw.githubusercontent.com/LIAVH-MLab/mohenjo-daro/refs/heads/master/data/Processed_Data.csv", function(error, data) {
+
+
+        //Filter Artefacts
+        let arts = _.filter(data, {
+            'N1': "Artefacts",
+        });
+
+        // Create Block_House Variable
+        // Proicessing artefacts data
+        arts = arts.map((d,i) => ({
+            Class: d.Class,
+            Block: d.Block,
+            House: d.House,
+            level: +d.Level_ft,
+            Plate: d.Plate,
+            Room: d.Room,
+            Text: d.Text,
+            time: d.Time_Cat,
+            Type: d.Type,
+            Feature:d.Feature,
+            photo: d.photo,
+            loc: d.Block + '-' + d.House,
+            x:+d.x,
+            y:+d.y,
+            ind:i
+        }));
+        console.log("Data: " , data);
+
+        // Sort by Block - House (Loc)
+        arts = _.sortBy(arts, [function(d) {
+            return d.loc;
+        }]);
+
+        
+        // Config
+        let width = w;
+        let height = 700;
+
+        let margin = {
+            top: 5,
+            bottom: 35,
+            left: 30,
+            right: 5 
+        }
+
+        // Create Scales
+        let min = d3.min(arts.map(d => d.level))
+        let max = d3.max(arts.map(d => d.level))
+
+        // --x
+        let xScale = d3.scaleBand()
+            .range([+5, width - margin.left - margin.right - 3])
+            .domain(arts.map(d => d.loc)) //X Scale is Block House
+            .padding(0.35)
+        // --y
+        let yScale = d3.scaleLinear()
+            .domain([min-2, max+2])
+            .range([(height - margin.top - margin.bottom), 0]);
+        
+        // --color
+        // sectors are the unique "Classes" of artefacts
+        let sectors = Array.from(new Set( arts.map((d) => d['Class'] ))); //Get Unique
+        let color = d3.scaleOrdinal().domain(sectors).range(["#ffc225", "#ff84ea", "#14b1ff", "#ffff00"]);
+        // adding a change to deselected color for the dots
+        let deselectedColor = "#ffffff";       
+
+        // Starts setting up the canvas for d3
+        let container = d3.selectAll("#container");
+        container.attr("height", height).attr("width", "100%" );
+
+        // set background color for canvas 
+        container.append("rect")
+            .attr("width", "100%")
+            .attr("height", "100%")
+            .attr("fill", "#f4ecde");
+
+        // shifting 
+        let body = container.append("g")
+            .style("transform", `translate(${margin.left}px,${margin.top}px)`);
+
+        // Unique Locations
+        // This is BLock-House and will be the categorical X-axis
+        let locs = Array.from(new Set(arts.map((d) => d.loc))); //Get Unique
+
+        // X Grid (Vertical)
+        let grid = body.append("g").attr("class","xgrid").selectAll("line")
+            .data(locs).enter()
+            .append("line")
+            .attr("class", "horizontalGrid")
+            .attr("y1", 0)
+            .attr("y2", height - margin.bottom - margin.top)
+            .attr("x1", d => xScale(d))
+            .attr("x2", d => xScale(d))
+            .attr("stroke", "black")
+            .attr("stroke-width", ".01em")
+
+        // Y Grid (Horizontal)
+        let ylocs = new Array(-40,-35,-30,-25,-20,-15,-10,-5);
+        let ygrid = body.append("g").attr("class","ygrid").selectAll("line")
+            .data(ylocs).enter()
+            .append("line")
+            .attr("class", "verticalGrid")
+            .attr("x1", 0)
+            .attr("x2", width - margin.left - margin.right)
+            .attr("y1", d => yScale(d))
+            .attr("y2", d => yScale(d))
+            .attr("fill", "none")
+            .attr("stroke", "black")
+            .style("stroke-dasharray", ("3, 6"))
+            .style("opacity",0.7)
+            .attr("stroke-width", ".01em")
+
+        
+        // Scatter Plot
+        let rad = 2.5
+        let join = body.append("g").attr("class","dots").selectAll("circle")
+            .data(arts).enter()
+            .append("circle")
+            .attr("class", "circ")
+            .attr("id",d => d['ind'])
+            .attr("cx", d => xScale(d['loc']))
+            .attr("cy", d => yScale(d['level']))
+            .attr("r", rad)
+            .attr("fill", (d) => color(d['Class']));
+
+        // Collusion Detection
+        function tick() {
+            d3.selectAll(".circ")
+                .attr("cx", d => d.x)
+                .attr("cy", d => d.y);
+        };
+
+        let simulation = d3.forceSimulation(arts)
+            .force("x", d3.forceX((d) => {
+                return xScale(d.loc);
+            }).strength(0.2))
+            .force("y", d3.forceY((d) => {
+                return yScale(d.level);
+            }).strength(1))
+            .force("collide", d3.forceCollide(rad))
+            .alphaDecay(0)
+            .alpha(0.3)
+            .on("tick", tick);
+
+        let init_decay = setTimeout(function() {
+            console.log("start alpha decay");
+            simulation.alphaDecay(0.1);
+        }, 4000); 
+
+
+        // Axis
+        //----x Categorical Scale
+        let xAxis = d3.axisBottom(xScale);
+        container.append("g")
+            .attr("class", "xaxis")
+            .attr("id", "x")
+            .style("transform", `translate(${margin.left}px,${height-margin.bottom}px)`)
+            .style("font-size", "11px")
+            .call(xAxis)
+            .selectAll("text")
+            .style("text-anchor", "end")
+            .attr("transform", function(d) {
+                return "rotate(-90)";
+            })
+            .attr("dx", "-.8em")
+            .attr("dy", "-15px");
+
+        //----x Linear Scale
+        let yAxis = d3.axisLeft(yScale);
+        container.append("g")
+            .attr("class", "yaxis")
+            .attr("id", "y")
+            .style("transform", `translate(${margin.left}px,${margin.top}px)`)
+            .style("font-size", "12px")
+            .call(yAxis)
+            .selectAll("text")
+            .attr("dx", "-.8em")
+            .attr("dy", "-5px");
+        // label y axis at top of chart with "level in feet"
+      
+
+        // TOOLTIP and Interaction
+        d3.select('body')
+            .append('div')
+            .attr('id', 'tooltip')
+            .style('opactiy', 0);
+
+        //-- Mouse Over, enter, move, out
+        join.on("mouseenter", function(d) {
+                // When mouse enters to any circle, first makes sure all other are back to normal
+               join.attr("r",rad).attr("stroke","none");
+
+                // Hovered circle has black stroke
+                d3.select(this)
+                    .attr("stroke","white")
+                    .transition().duration(500)
+                    .attr("r", 6)             
+                    .attr("stroke","black")
+                    .attr("opacity",1);
+
+                // if the id of the hovered cirle is the same the map dot, make it bigger
+                search = +this.id;
+                locators.attr("stroke", d => {
+                        if(d.ind === search){
+                            r = "black";
+                        } else{
+                            r = 'none';
+                        }
+                        return r;
+                    })
+                    .attr("r", d => {
+                        if(d.ind === search){
+                            r = rad*3;
+                        } else{
+                            r = rad;
+                        }
+                        return r;
+                    });
+
+            })
+            .on('mouseover', function(d) {
+                d3.select('#tooltip')
+                    .transition().duration(200)
+                    .style('opacity', 1)
+            })
+            .on('mouseout', function(d) {
+                d3.select('#tooltip')
+                    .transition().duration(200)
+                    .style('opacity', 0);
+
+                locators.attr("r",rad).attr("stroke","none");
+
+                d3.select(this)
+                    .attr("stroke","white")
+                    .attr("r", rad)             
+                    .attr("stroke","none");
+            })
+
+            // reset the tool tip hover box to be closer to the point it's referencing
+            // not sure where that is>>>  chaned line 401 below
+            // let px = d3.mouse(this)[0] + (($(window).width()-1200)/2) + 80;
+
+            .on('mousemove', function(d) {
+                let px = d3.mouse(this)[0] +  85;
+                let py = d3.mouse(this)[1];
+
+                d3.select('#tooltip')
+                    .style('left', px + 'px')
+                    .style('top', py + 'px')
+                    .style("background-color", "rgb(255,255,255,0.9)")
+                    .html(`<p2><b>Location: </b> ${d.Block}-${d.House}-${d.Room}<br><b>Class: </b>${d.Class}<br><b>Feature: </b>${d.Feature}<br><b>Type: </b> ${d.Type}<br><b>Description: </b>${d.Text}</p2><img src=${d.photo}></img>`)
+                        //make text in .html block bold 
+            })
+
+            //  .html(`<p2><b>Location: </b> ${d.Block}-${d.House}-${d.Room}<br> <b>Class: </b>${d.Class}<p><b>Feature: </b>${d.Feature}</p><p><b>Type: </b> ${d.Type}</p><p><b>Description: </b></br>${d.Text}</p2><img src=${d.photo}></img>`)
+
+
+        // TIME SELCTION
+        // I am selecting the time category from the ribbon above
+        value = $(document).ready(function() {
+            $('.btn').click(function() {
+            
+            timeval = $(this).text();
+            join.transition().duration(250)
+                .attr("fill", function(d) {
+                    if (d.time === timeval){
+                        return color(d.Class)
+                    }
+                    else {
+                        return "#ffffff";
+                    }
+                });
+
+            if (timeval === "All"){
+                join.transition().duration(250)
+                    .attr("fill", (d) => color(d.Class));
+            };
+
+            });
+        });
+
+
+
+    // ---------------  MAP  -------------------------
+
+    let arts1 = arts.map(d => ({
+        Class: d.Class,
+        time: d.time,
+        x:+d.x,
+        y:+d.y,
+        ind:d.ind
+    }));
+
+    // so that the grid on the map is ordered by ['Class']
+    // --- Some arts seem to be missing some fields
+    //  --- It would be good to understand why are there missing point in the grid.  
+    arts1 = _.sortBy(arts1, [function(d) {
+        return d.Class;
+    }]);
+
+// Initialize Map  
+mapboxgl.accessToken = 'pk.eyJ1IjoibGlhdmgiLCJhIjoiY20yZHA2Nmh1MWZwajJrcTR4bDczM3BhbyJ9.OVzst5OiXSKnT-ayoSqp5A';
+var map = new mapboxgl.Map({
+    container: 'map',
+    style: 'mapbox://styles/liavh/cm3g29g83004h01rvfq472xgt', 
+        zoom: 18.75,
+        center: [68.1371040,27.32674541],
+    });
+ 
+    // Get Mapbox map canvas container
+    var canvas = map.getCanvasContainer();
+    // add svg on the map
+        var map_svg = d3.select(canvas).append("svg")
+            .attr("id","map-box")
+            .attr("width",w)
+            .attr("height",height);
+
+        // Project to whatever the map is
+        function project(d) {
+            return map.project(new mapboxgl.LngLat(+d[0], +d[1]));
+        }
+
+        let locators = map_svg.selectAll("circle")
+            .data( arts1 ).enter()
+            .append("circle")
+            .attr("class","map-dots")
+            .attr("id", d => d.ind)
+            .attr("r", rad)
+            .attr("fill", d => color(d.Class))
+            .style("opacity",1)
+        
+        // This is what creates the grid. 
+        // This needs to be reqorked...
+        function update() {
+            carpan = 6; // multipler for distance between grid objects (dots)
+            gnum = 8; // number of columns
+            
+            locators.attr("cx", function(d,i){
+                    p = project( new Array( d.x,d.y ) );
+                    return p.x + ((i % gnum) * carpan) - (carpan / 2);
+                })
+                .attr("cy", function(d,i){
+                    p = project(new Array( d.x,d.y ));
+                    return p.y + ((Math.floor(i/gnum)%12)*carpan) - (carpan/2);
+                });
+        };
+
+        update();
+
+        $('.btn').click(function() {
+            timeval2 = $(this).text();
+
+            if (timeval2 === "All"){
+                locators.attr("fill", d => color(d.Class))
+            }
+            else {
+                locators.attr("fill", function(d) {
+                    if (d.time === timeval2){
+                        return color(d.Class)
+                    }
+                    else {
+                        return "#ffffff";
+                    }
+                });
+
+            }
+        })
+
+        // Everytime map moves recalculate the grid
+        map.on("viewreset", update)
+        map.on("move", update)
+        
+
+    })
+</script>
+
+
+</html>
