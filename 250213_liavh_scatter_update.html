@@ -22,7 +22,7 @@
     <script src="https://api.mapbox.com/mapbox-gl-js/v3.9.4/mapbox-gl.js"></script>
 
     <style>
-
+        
         .source-sans-3-<uniquifier> {
             font-family: "Source Sans 3", serif;
             font-optical-sizing: auto;
@@ -32,10 +32,10 @@
         html, body {
             height: 100%;
             width: 100%;
-            margin: 0;
+            margin:0;
             padding: .5rem;
             font-family: 'Source Sans 3', sans-serif;  
-            background-color: #f4ecde; 
+            background-color: #F5F2EC; 
         }
 
         h3 {
@@ -57,56 +57,72 @@
             font-weight: 700;
         }
 
+          /* 
+        **** map and chart are not responsive ****
+        how to make container responsive so both the map and chart change together / equally? 
+        I think the sizing is coming from D3 not the css 
+        **** also need a LEGEND somewhere to show artifact categories *****/
+
+
         svg {
             font-family: 'Source Sans 3', sans-serif;
             font-weight: 300;
         }
-        /* map and chart are not responsive, need to change that so they both resize when window changes size /*/
+        
         .container{
             width:100%;
             height: 700px;
             display:flex;
             flex-direction: row;
             margin: .5rem;
-            padding: 0rem;
+            padding: 1rem;
             box-sizing: border-box;
             gap: 1rem;
-            justify-content: space-between;
+             /* justify-content: space-between; */
         }
 
         .col{
-            padding:0px;
-            width: 49.4%;
+            /* padding:0px;
+            /* width: 49.5%; */
+            flex: 1;
+            display: flex;
         }
 
         #map{
-            margin: .5rem;
-            position:relative; 
-            top:0; 
+            margin:0rem;
+             /* top:0; 
             bottom:0; 
-            right: 20px;
+            /* padding: 20px; */
             width:100%;
             height:100%;
+            position:relative;
         }
 
         .btn-group {
             display: flex;
             flex-direction: column;
             gap:1rem;
-            justify-content: center;
+            justify-content: left;
             justify-items: center;
             font-size: 0.75rem;
         }
 
-        canvas{
+        canvas {
             opacity:1;
+            width: 100%;
+            height: 100%;
+            overflow: visible;
         }
-
+        .chart-container {
+            flex: 1;
+            position: relative;
+            padding-bottom: 5%; /* Extra space for axis labels */
+        }
         svg {
             position: relative;
             width: 100%;
             height: 100%;
-          }
+          } 
 
         /* Chart Related Below */
         .xaxis line{
@@ -217,7 +233,7 @@
 
         let margin = {
             top: 5,
-            bottom: 35,
+            bottom: 65,
             left: 30,
             right: 5 
         }
@@ -239,7 +255,10 @@
         // --color
         // sectors are the unique "Classes" of artefacts
         let sectors = Array.from(new Set( arts.map((d) => d['Class'] ))); //Get Unique
-        let color = d3.scaleOrdinal().domain(sectors).range(["#ffc225", "#ff84ea", "#14b1ff", "#ffff00"]);
+        // alt colors lt green, lt blue, dk blue, dk green
+        let color = d3.scaleOrdinal().domain(sectors).range(["#AEDA50", "#6395DF", "#005AC5", "#489000"]);
+
+       // old colors // let color = d3.scaleOrdinal().domain(sectors).range(["#ffc225", "#ff84ea", "#14b1ff", "#ffff00"]);
         // adding a change to deselected color for the dots
         let deselectedColor = "#ffffff";       
 
@@ -251,7 +270,7 @@
         container.append("rect")
             .attr("width", "100%")
             .attr("height", "100%")
-            .attr("fill", "#f4ecde");
+            .attr("fill", "#F5F2EC");
 
         // shifting 
         let body = container.append("g")
@@ -290,7 +309,8 @@
             .attr("stroke-width", ".01em")
 
         
-        // Scatter Plot
+        // Scatter Plot 
+        // new: added black stroke to circles 
         let rad = 2.5
         let join = body.append("g").attr("class","dots").selectAll("circle")
             .data(arts).enter()
@@ -300,6 +320,8 @@
             .attr("cx", d => xScale(d['loc']))
             .attr("cy", d => yScale(d['level']))
             .attr("r", rad)
+            .attr("stroke", "black")
+            .attr("stroke-width", ".01em")
             .attr("fill", (d) => color(d['Class']));
 
         // Collusion Detection
@@ -355,7 +377,7 @@
             .selectAll("text")
             .attr("dx", "-.8em")
             .attr("dy", "-5px");
-        // label y axis at top of chart with "level in feet"
+        // new: label y axis at top of chart with "level in feet"
       
 
         // TOOLTIP and Interaction
@@ -367,7 +389,8 @@
         //-- Mouse Over, enter, move, out
         join.on("mouseenter", function(d) {
                 // When mouse enters to any circle, first makes sure all other are back to normal
-               join.attr("r",rad).attr("stroke","none");
+                // added black stroke for visibility
+               join.attr("r",rad).attr("stroke","black");
 
                 // Hovered circle has black stroke
                 d3.select(this)
@@ -407,7 +430,7 @@
                     .transition().duration(200)
                     .style('opacity', 0);
 
-                locators.attr("r",rad).attr("stroke","none");
+                locators.attr("r",rad).attr("stroke","black");
 
                 d3.select(this)
                     .attr("stroke","white")
@@ -499,17 +522,21 @@ var map = new mapboxgl.Map({
             return map.project(new mapboxgl.LngLat(+d[0], +d[1]));
         }
 
+        // new: add stroke around map markers: wrong place? did not do anything
         let locators = map_svg.selectAll("circle")
             .data( arts1 ).enter()
             .append("circle")
             .attr("class","map-dots")
             .attr("id", d => d.ind)
             .attr("r", rad)
+            // stroke added here:
+            .attr("stroke", "black")
+            .attr("stroke-width", ".01em")
             .attr("fill", d => color(d.Class))
             .style("opacity",1)
         
         // This is what creates the grid. 
-        // This needs to be reqorked...
+        // This needs to be reworked...
         function update() {
             carpan = 6; // multipler for distance between grid objects (dots)
             gnum = 8; // number of columns
@@ -525,12 +552,14 @@ var map = new mapboxgl.Map({
         };
 
         update();
-
+        // new added stroke around markers
         $('.btn').click(function() {
             timeval2 = $(this).text();
 
             if (timeval2 === "All"){
-                locators.attr("fill", d => color(d.Class))
+                locators.attr("fill", d => color(d.Class)
+                      .attr("stroke", "black")
+                      .attr("stroke-width", ".01em"))
             }
             else {
                 locators.attr("fill", function(d) {
